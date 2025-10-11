@@ -90,8 +90,8 @@ export function FrequencyAnalysis() {
         const mlJson: MlPredictionData = await mlRes.json();
         setMlPredictionData(mlJson);
 
-      } catch (e: any) {
-        setError(e.message);
+            } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoading(false);
       }

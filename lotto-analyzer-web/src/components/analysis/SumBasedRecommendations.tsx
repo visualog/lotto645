@@ -51,8 +51,8 @@ export function SumBasedRecommendations() {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json: SumRecommendations = await res.json();
         setSumRecData(json);
-      } catch (e: any) {
-        setError(e.message);
+            } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoading(false);
       }

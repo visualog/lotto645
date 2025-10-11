@@ -38,8 +38,8 @@ export function TimeSeriesAnalysis() {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json: TimeSeriesDataPoint[] = await res.json();
         setTimeSeriesData(json);
-      } catch (e: any) {
-        setError(e.message);
+            } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoading(false);
       }

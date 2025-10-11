@@ -68,8 +68,8 @@ export function PatternAnalysis() {
         const phase1RecJson: Phase1Recommendations = await phase1RecRes.json();
         setPhase1RecData(phase1RecJson);
 
-      } catch (e: any) {
-        setError(e.message);
+            } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoading(false);
       }
