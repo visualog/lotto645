@@ -52,7 +52,7 @@ jobs:
 
       # --- Build and Deploy Frontend ---
       - name: Build Frontend Docker Image
-        run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }} ./lotto-analyzer-web
+        run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }} -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
 
       - name: Push Frontend Docker Image
         run: docker push ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }}
