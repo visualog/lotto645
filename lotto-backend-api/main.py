@@ -14,6 +14,7 @@ app = FastAPI()
 # Allow CORS for frontend development
 origins = [
     "http://localhost:3000", # Next.js frontend
+    "https://lotto-frontend-web-ogruimajqa-du.a.run.app", # Deployed frontend
 ]
 
 app.add_middleware(
