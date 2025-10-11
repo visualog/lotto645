@@ -50,7 +50,10 @@ jobs:
             --platform managed \
             --allow-unauthenticated # Adjust as needed for authentication
 
-      # --- Build and Deploy Frontend ---
+      # --- Debug and Build Frontend ---
+      - name: Debug file listing
+        run: ls -laR
+
       - name: Build Frontend Docker Image
         run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }} -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
 
