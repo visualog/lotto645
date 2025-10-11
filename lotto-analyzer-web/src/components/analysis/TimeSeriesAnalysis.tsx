@@ -32,9 +32,10 @@ export function TimeSeriesAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
     const fetchData = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/analysis/timeseries");
+        const res = await fetch(`${API_BASE_URL}/api/analysis/timeseries`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json: TimeSeriesDataPoint[] = await res.json();
         setTimeSeriesData(json);

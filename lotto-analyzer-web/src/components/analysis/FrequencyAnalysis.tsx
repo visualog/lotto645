@@ -78,14 +78,15 @@ export function FrequencyAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
     const fetchData = async () => {
       try {
-        const frequencyRes = await fetch("http://127.0.0.1:8000/api/analysis/frequency");
+        const frequencyRes = await fetch(`${API_BASE_URL}/api/analysis/frequency`);
         if (!frequencyRes.ok) throw new Error(`HTTP error! status: ${frequencyRes.status}`);
         const frequencyJson: FrequencyData = await frequencyRes.json();
         setFrequencyData(frequencyJson);
 
-        const mlRes = await fetch("http://127.0.0.1:8000/api/recommendations/ml");
+        const mlRes = await fetch(`${API_BASE_URL}/api/recommendations/ml`);
         if (!mlRes.ok) throw new Error(`HTTP error! status: ${mlRes.status}`);
         const mlJson: MlPredictionData = await mlRes.json();
         setMlPredictionData(mlJson);

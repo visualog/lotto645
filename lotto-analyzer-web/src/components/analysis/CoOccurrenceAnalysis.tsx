@@ -36,14 +36,15 @@ export function CoOccurrenceAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
     const fetchData = async () => {
       try {
-        const coOccurrenceRes = await fetch("http://127.0.0.1:8000/api/analysis/cooccurrence");
+        const coOccurrenceRes = await fetch(`${API_BASE_URL}/api/analysis/cooccurrence`);
         if (!coOccurrenceRes.ok) throw new Error(`HTTP error! status: ${coOccurrenceRes.status}`);
         const coOccurrenceJson: CoOccurrenceDataPoint[] = await coOccurrenceRes.json();
         setCoOccurrenceData(coOccurrenceJson);
 
-        const phase1RecRes = await fetch("http://127.0.0.1:8000/api/recommendations/phase1");
+        const phase1RecRes = await fetch(`${API_BASE_URL}/api/recommendations/phase1`);
         if (!phase1RecRes.ok) throw new Error(`HTTP error! status: ${phase1RecRes.status}`);
         const phase1RecJson: Phase1Recommendations = await phase1RecRes.json();
         setPhase1RecData(phase1RecJson);
