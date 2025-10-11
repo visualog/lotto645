@@ -62,9 +62,7 @@ jobs:
 
               id: get_backend_url
 
-              run: |
-          SERVICE_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --format 'value(status.url)')
-          echo "backend_url=$SERVICE_URL" >> $GITHUB_OUTPUT
+              run: SERVICE_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --format 'value(status.url)'); echo "backend_url=$SERVICE_URL" >> $GITHUB_OUTPUT
 
       
 
