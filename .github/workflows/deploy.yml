@@ -37,7 +37,7 @@ jobs:
 
       # --- Build and Deploy Backend ---
       - name: Build Backend Docker Image
-        run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${BACKEND_REPOSITORY_NAME}/${BACKEND_IMAGE_NAME}:${{ github.sha }} ./lotto-backend-api
+        run: docker build -t ${{ env.GCR_HOSTNAME }}/${{ env.PROJECT_ID }}/${{ env.BACKEND_REPOSITORY_NAME }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }} -f ./lotto-backend-api/Dockerfile .
 
       - name: Push Backend Docker Image
         run: docker push ${GCR_HOSTNAME}/${PROJECT_ID}/${BACKEND_REPOSITORY_NAME}/${BACKEND_IMAGE_NAME}:${{ github.sha }}

@@ -26,7 +26,7 @@ app.add_middleware(
 )
 
 # --- Data Loading and Preprocessing (Run once on startup) ---
-LOTTO_HISTORY_FILE = os.path.join(os.path.dirname(__file__), "..", "lotto_history.csv")
+LOTTO_HISTORY_FILE = "lotto_history.csv"
 
 # Global variables to store pre-calculated analysis results
 hot_numbers = []
