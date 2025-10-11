@@ -42,18 +42,41 @@ jobs:
       - name: Push Backend Docker Image
         run: docker push ${GCR_HOSTNAME}/${PROJECT_ID}/${BACKEND_REPOSITORY_NAME}/${BACKEND_IMAGE_NAME}:${{ github.sha }}
 
-      - name: Deploy Backend to Cloud Run
-        run: |
-          gcloud run deploy ${BACKEND_SERVICE_NAME} \
-            --image ${GCR_HOSTNAME}/${PROJECT_ID}/${BACKEND_REPOSITORY_NAME}/${BACKEND_IMAGE_NAME}:${{ github.sha }} \
-            --region ${REGION} \
-            --platform managed \
-            --allow-unauthenticated # Adjust as needed for authentication
+            - name: Deploy Backend to Cloud Run
 
-      # --- Build and Deploy Frontend ---
+              run: |
 
-      - name: Build Frontend Docker Image
-        run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }} -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
+                gcloud run deploy ${BACKEND_SERVICE_NAME} \
+
+                  --image ${GCR_HOSTNAME}/${PROJECT_ID}/${BACKEND_REPOSITORY_NAME}/${BACKEND_IMAGE_NAME}:${{ github.sha }} \
+
+                  --region ${REGION} \
+
+                  --platform managed \
+
+                  --allow-unauthenticated # Adjust as needed for authentication
+
+      
+
+            - name: Get Backend URL
+
+              id: get_backend_url
+
+              run: echo "backend_url=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --format 'value(status.url)')" >> $GITHUB_OUTPUT
+
+      
+
+            # --- Build and Deploy Frontend ---
+
+            - name: Build Frontend Docker Image
+
+              run: |
+
+                docker build -t ${{ env.GCR_HOSTNAME }}/${{ env.PROJECT_ID }}/${{ env.FRONTEND_REPOSITORY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }} \
+
+                  --build-arg NEXT_PUBLIC_API_BASE_URL=${{ steps.get_backend_url.outputs.backend_url }} \
+
+                  -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
 
       - name: Push Frontend Docker Image
         run: docker push ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }}
