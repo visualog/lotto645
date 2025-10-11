@@ -4,6 +4,7 @@ from collections import Counter
 from itertools import combinations
 import random
 import os
+import uvicorn
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -305,4 +306,13 @@ async def get_sum_based_recommendations():
     return sum_recommendations
 
 # Run analysis on startup
+
 load_and_analyze_data()
+
+
+
+if __name__ == "__main__":
+
+    port = int(os.environ.get("PORT", 8000))
+
+    uvicorn.run(app, host="0.0.0.0", port=port)
