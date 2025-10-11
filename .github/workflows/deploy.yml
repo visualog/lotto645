@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: 'true'
 
       - name: Google Auth
         id: auth
@@ -50,9 +52,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated # Adjust as needed for authentication
 
-      # --- Debug and Build Frontend ---
-      - name: Debug file listing
-        run: ls -laR
+      # --- Build and Deploy Frontend ---
 
       - name: Build Frontend Docker Image
         run: docker build -t ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }} -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
