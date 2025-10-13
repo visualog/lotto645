@@ -46,100 +46,112 @@ def load_and_analyze_data():
     global pattern_stats, time_series_data, ml_predictions, co_occurrence_data
     global phase1_recommendations, integrated_recommendation, sum_recommendations
 
-    # --- Frequency Analysis ---
+    # --- Reset global variables ---
+    hot_numbers, cold_numbers, hot_bonus_numbers, cold_bonus_numbers = [], [], [], []
+    pattern_stats, time_series_data, co_occurrence_data = {}, [], []
+    ml_predictions, phase1_recommendations, sum_recommendations = {}, {}, {}
+    integrated_recommendation = []
+
+    # --- Counters and temp storage ---
     main_numbers_counter = Counter()
     bonus_numbers_counter = Counter()
     last_seen = {num: 0 for num in range(1, 46)}
     all_sums = []
     sums_counter = Counter()
+    odd_even_ratios_counter = Counter()
+    high_low_ratios_counter = Counter()
+    consecutive_count = 0
     
     try:
         with open(LOTTO_HISTORY_FILE, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
-            sorted_list = sorted(list(reader), key=lambda row: int(row['회차']))
+            # Skip header row if it's not automatically skipped
+            # next(reader, None) 
+            
+            sorted_list = sorted(list(reader), key=lambda row: int(row['회차'].replace('회', '')))
             total_draws = 0
+
             for row in sorted_list:
-                draw_num = int(row['회차'])
-                total_draws = draw_num
+                try:
+                    draw_num_str = row['회차'].replace('회', '')
+                    if not draw_num_str.isdigit(): continue
+                    draw_num = int(draw_num_str)
+                    total_draws = draw_num
 
-                current_draw_numbers = set()
-                for i in range(1, 7):
-                    num = int(row[f'당첨번호_{i}'])
-                    current_draw_numbers.add(num)
-                    main_numbers_counter[num] += 1
-                
-                bonus_num = int(row['보너스번호'])
-                bonus_numbers_counter[bonus_num] += 1
-                current_draw_numbers.add(bonus_num) # Include bonus for last_seen
+                    # --- Parse main numbers ---
+                    numbers_str = row['당첨번호']
+                    main_nums = [int(n.strip()) for n in numbers_str.split(',')]
+                    
+                    current_draw_numbers = set(main_nums)
+                    for num in main_nums:
+                        main_numbers_counter[num] += 1
+                    
+                    # --- Parse bonus number ---
+                    bonus_num_str = row.get('보너스번호')
+                    if bonus_num_str and bonus_num_str.isdigit():
+                        bonus_num = int(bonus_num_str)
+                        bonus_numbers_counter[bonus_num] += 1
+                        current_draw_numbers.add(bonus_num)
 
-                for num in current_draw_numbers:
-                    last_seen[num] = draw_num
-                
-                # For sum analysis
-                sum_val = int(row['당첨번호_합'])
-                all_sums.append(sum_val)
-                sums_counter[sum_val] += 1
+                    for num in current_draw_numbers:
+                        last_seen[num] = draw_num
+                    
+                    # --- Calculate sum ---
+                    sum_val = sum(main_nums)
+                    all_sums.append(sum_val)
+                    sums_counter[sum_val] += 1
 
+                    # --- Calculate patterns ---
+                    odd_count = sum(1 for n in main_nums if n % 2 != 0)
+                    odd_even_ratios_counter[f"{odd_count}:{6-odd_count}"] += 1
+
+                    low_count = sum(1 for n in main_nums if 1 <= n <= 22)
+                    high_low_ratios_counter[f"{6-low_count}:{low_count}"] += 1
+                    
+                    sorted_nums = sorted(main_nums)
+                    if any(sorted_nums[i+1] == sorted_nums[i] + 1 for i in range(len(sorted_nums) - 1)):
+                        consecutive_count += 1
+
+                    # --- Co-occurrence ---
+                    for pair in combinations(sorted_nums, 2):
+                        pair_frequencies[pair] += 1
+
+                except (ValueError, KeyError) as e:
+                    print(f"Skipping row due to parsing error: {row} - Error: {e}")
+                    continue
+
+        # --- Final Calculations ---
         hot_numbers.extend([{"number": num, "count": count} for num, count in main_numbers_counter.most_common(10)])
         cold_numbers.extend([{"number": num, "count": count} for num, count in main_numbers_counter.most_common()[-10:]])
         hot_bonus_numbers.extend([{"number": num, "count": count} for num, count in bonus_numbers_counter.most_common(5)])
         cold_bonus_numbers.extend([{"number": num, "count": count} for num, count in bonus_numbers_counter.most_common()[-5:]])
 
-        # --- Pattern Analysis ---
-        odd_even_ratios_counter = Counter()
-        high_low_ratios_counter = Counter()
-        consecutive_count = 0
-
-        with open(LOTTO_HISTORY_FILE, 'r', encoding='utf-8-sig') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ratio_key = '당첨번호_홀짝비율'
-                if row.get(ratio_key):
-                    odd_even_ratios_counter[row[ratio_key]] += 1
-
-                main_nums_for_patterns = []
-                for i in range(1, 7):
-                    num_key = f'당첨번호_{i}'
-                    if row.get(num_key) and row[num_key].isdigit():
-                        main_nums_for_patterns.append(int(row[num_key]))
-                
-                if len(main_nums_for_patterns) == 6:
-                    low_count = sum(1 for n in main_nums_for_patterns if 1 <= n <= 22)
-                    high_count = 6 - low_count
-                    high_low_ratios_counter[f"{high_count}:{low_count}"] += 1
-                    
-                    sorted_nums = sorted(main_nums_for_patterns)
-                    if any(sorted_nums[i+1] == sorted_nums[i] + 1 for i in range(len(sorted_nums) - 1)):
-                        consecutive_count += 1
-        
         pattern_stats["total_draws"] = total_draws
         pattern_stats["odd_even_ratios"] = dict(odd_even_ratios_counter.most_common())
         pattern_stats["high_low_ratios"] = dict(high_low_ratios_counter.most_common())
         pattern_stats["consecutive_stats"] = {
             "count": consecutive_count,
-            "percentage": round((consecutive_count / total_draws) * 100, 2)
+            "percentage": round((consecutive_count / total_draws) * 100, 2) if total_draws > 0 else 0
         }
-        pattern_stats["sum_stats"] = {
-            "min": int(min(all_sums)),
-            "max": int(max(all_sums)),
-            "mean": round(sum(all_sums) / len(all_sums), 2),
-            "median": int(sorted(all_sums)[len(all_sums) // 2]),
-            "std_dev": round((sum((x - (sum(all_sums) / len(all_sums))) ** 2 for x in all_sums) / len(all_sums)) ** 0.5, 2)
-        }
+        if all_sums:
+            pattern_stats["sum_stats"] = {
+                "min": int(min(all_sums)),
+                "max": int(max(all_sums)),
+                "mean": round(sum(all_sums) / len(all_sums), 2),
+                "median": int(sorted(all_sums)[len(all_sums) // 2]),
+                "std_dev": round((sum((x - (sum(all_sums) / len(all_sums))) ** 2 for x in all_sums) / len(all_sums)) ** 0.5, 2)
+            }
+        else:
+            pattern_stats["sum_stats"] = {}
+
 
         # --- Time Series Analysis ---
         time_series_data_raw = []
         window_size = 52
         sample_rate = 10
         
-        sums_ts = []
-        draws_ts = []
-        with open(LOTTO_HISTORY_FILE, 'r', encoding='utf-8-sig') as f:
-            reader = csv.DictReader(f)
-            sorted_list_ts = sorted(list(reader), key=lambda row: int(row['회차']))
-            for row in sorted_list_ts:
-                draws_ts.append(int(row['회차']))
-                sums_ts.append(int(row['당첨번호_합']))
+        sums_ts = all_sums
+        draws_ts = [i for i in range(1, total_draws + 1)]
 
         moving_averages = []
         for i in range(len(sums_ts)):
@@ -170,20 +182,6 @@ def load_and_analyze_data():
         ml_predictions["overdue_numbers_prediction"] = sorted(overdue_prediction)
 
         # --- Co-occurrence Analysis ---
-        pair_frequencies = Counter()
-        with open(LOTTO_HISTORY_FILE, 'r', encoding='utf-8-sig') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                main_nums_co = []
-                for i in range(1, 7):
-                    num_str = row.get(f'당첨번호_{i}')
-                    if num_str and num_str.isdigit():
-                        main_nums_co.append(int(num_str))
-                
-                if len(main_nums_co) == 6:
-                    for pair in combinations(sorted(main_nums_co), 2):
-                        pair_frequencies[pair] += 1
-        
         top_20_pairs = []
         for pair, count in pair_frequencies.most_common(20):
             top_20_pairs.append({
@@ -206,25 +204,25 @@ def load_and_analyze_data():
 
         # --- Integrated Recommendation ---
         integrated_scores = {}
-        for num in range(1, 46):
-            score = 0
-            # Normalize scores (simple min-max normalization)
+        if main_numbers_counter:
             max_freq = max(main_numbers_counter.values())
             min_freq = min(main_numbers_counter.values())
-            normalized_freq = (main_numbers_counter.get(num, 0) - min_freq) / (max_freq - min_freq) if (max_freq - min_freq) > 0 else 0
-
             max_overdue = max(overdue.values())
             min_overdue = min(overdue.values())
-            normalized_overdue = (overdue.get(num, 0) - min_overdue) / (max_overdue - min_overdue) if (max_overdue - min_overdue) > 0 else 0
 
-            score += normalized_freq * 0.4
-            score += normalized_overdue * 0.3
-            
-            if num in pattern_recommendation:
-                score += 0.1
-            if num in co_occurrence_recommendation:
-                score += 0.1
-            integrated_scores[num] = score
+            for num in range(1, 46):
+                score = 0
+                normalized_freq = (main_numbers_counter.get(num, 0) - min_freq) / (max_freq - min_freq) if (max_freq - min_freq) > 0 else 0
+                normalized_overdue = (overdue.get(num, 0) - min_overdue) / (max_overdue - min_overdue) if (max_overdue - min_overdue) > 0 else 0
+
+                score += normalized_freq * 0.4
+                score += normalized_overdue * 0.3
+                
+                if num in pattern_recommendation:
+                    score += 0.1
+                if num in co_occurrence_recommendation:
+                    score += 0.1
+                integrated_scores[num] = score
         
         integrated_recommendation_raw = sorted(integrated_scores.items(), key=lambda item: item[1], reverse=True)[:6]
         integrated_recommendation.extend(sorted([num for num, score in integrated_recommendation_raw]))
