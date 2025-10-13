@@ -50,12 +50,16 @@ jobs:
             --platform managed \
             --allow-unauthenticated
 
+      - name: Get Backend URL
+        id: get_backend_url
+        run: SERVICE_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --format 'value(status.url)'); echo "backend_url=$SERVICE_URL" >> $GITHUB_OUTPUT
+
+      - name: Create .env.production file
+        run: echo "NEXT_PUBLIC_API_BASE_URL=${{ steps.get_backend_url.outputs.backend_url }}" > lotto-analyzer-web/.env.production
+
       # --- Build and Deploy Frontend ---
       - name: Build Frontend Docker Image
-        run: |
-          docker build -t ${{ env.GCR_HOSTNAME }}/${{ env.PROJECT_ID }}/${{ env.FRONTEND_REPOSITORY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }} \
-            --build-arg NEXT_PUBLIC_API_BASE_URL=https://lotto-backend-api-ogruimajqa-du.a.run.app \
-            -f ./lotto-analyzer-web/Dockerfile ./lotto-analyzer-web
+        run: docker build -t ${{ env.GCR_HOSTNAME }}/${{ env.PROJECT_ID }}/${{ env.FRONTEND_REPOSITORY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }} -f ./lotto-analyzer-web/Dockerfile .
 
       - name: Push Frontend Docker Image
         run: docker push ${GCR_HOSTNAME}/${PROJECT_ID}/${FRONTEND_REPOSITORY_NAME}/${FRONTEND_IMAGE_NAME}:${{ github.sha }}
