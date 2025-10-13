@@ -67,12 +67,7 @@ def load_and_analyze_data():
             consecutive_count = 0
             total_draws = 0
 
-            # Filter and sort rows first to avoid errors during iteration
-            valid_rows = []
-            for row in reader:
-                if row and row.get('회차') and '회' in row['회차']:
-                    valid_rows.append(row)
-            
+            valid_rows = [row for row in reader if row and row.get('회차') and '회' in row['회차']]
             sorted_list = sorted(valid_rows, key=lambda r: int(r['회차'].replace('회', '')))
 
             for i, row in enumerate(sorted_list):
@@ -117,8 +112,7 @@ def load_and_analyze_data():
                     print(f"CRITICAL: Failed to process row {i + 1}. Data: {row}. Error: {e}")
                     continue
 
-        # --- Final Calculations ---
-        if not main_numbers_counter: # Check if any data was processed
+        if not main_numbers_counter:
             print("CRITICAL: No data was processed. All counters are empty.")
             return
 
@@ -136,15 +130,54 @@ def load_and_analyze_data():
         }
         if all_sums:
             pattern_stats["sum_stats"] = {
-                "min": int(min(all_sums)),
-                "max": int(max(all_sums)),
+                "min": int(min(all_sums)), "max": int(max(all_sums)),
                 "mean": round(sum(all_sums) / len(all_sums), 2),
                 "median": int(sorted(all_sums)[len(all_sums) // 2]),
                 "std_dev": round((sum((x - (sum(all_sums) / len(all_sums))) ** 2 for x in all_sums) / len(all_sums)) ** 0.5, 2)
             }
 
-        # (The rest of the function remains largely the same, so it is omitted for brevity)
-        # ... [rest of the analysis logic as it was, it depends on the counters] ...
+        time_series_data_raw = []
+        window_size, sample_rate = 52, 10
+        draws_ts = list(range(1, total_draws + 1))
+        moving_averages = [round(sum(all_sums[max(0, i - window_size + 1):i + 1]) / len(all_sums[max(0, i - window_size + 1):i + 1]), 2) if i >= window_size -1 else None for i in range(len(all_sums))]
+        for i in range(len(draws_ts)):
+            if i % sample_rate == 0: time_series_data_raw.append({"name": f"{draws_ts[i]}회", "sum": all_sums[i], "moving_average": moving_averages[i]})
+        time_series_data.extend(time_series_data_raw)
+
+        overdue = {num: total_draws - seen_at for num, seen_at in last_seen.items()}
+        ml_predictions["hot_numbers_prediction"] = sorted([num for num, count in main_numbers_counter.most_common(6)])
+        ml_predictions["overdue_numbers_prediction"] = sorted([num for num, gap in sorted(overdue.items(), key=lambda item: item[1], reverse=True)[:6]])
+
+        co_occurrence_data.extend([{"pair": f"{p[0]} - {p[1]}", "count": c} for p, c in pair_frequencies.most_common(20)])
+
+        co_occurrence_nodes = Counter()
+        for pair, count in pair_frequencies.most_common(50): co_occurrence_nodes.update({pair[0]: count, pair[1]: count})
+        phase1_recommendations["pattern"] = sorted([12, 13, 17, 28, 33, 40])
+        phase1_recommendations["co_occurrence"] = sorted([num for num, count in co_occurrence_nodes.most_common(6)])
+
+        integrated_scores = Counter()
+        if main_numbers_counter:
+            max_freq, min_freq = max(main_numbers_counter.values()), min(main_numbers_counter.values())
+            max_overdue, min_overdue = max(overdue.values()), min(overdue.values())
+            for num in range(1, 46):
+                norm_freq = (main_numbers_counter.get(num, 0) - min_freq) / (max_freq - min_freq) if (max_freq - min_freq) > 0 else 0
+                norm_overdue = (overdue.get(num, 0) - min_overdue) / (max_overdue - min_overdue) if (max_overdue - min_overdue) > 0 else 0
+                integrated_scores[num] += norm_freq * 0.4 + norm_overdue * 0.3
+                if num in phase1_recommendations["pattern"]: integrated_scores[num] += 0.1
+                if num in phase1_recommendations["co_occurrence"]: integrated_scores[num] += 0.1
+        integrated_recommendation.extend(sorted([num for num, score in integrated_scores.most_common(6)]))
+
+        def generate_combination_for_sum_simple(target_sum, max_attempts=1000):
+            for _ in range(max_attempts):
+                combo = random.sample(range(1, 46), 6)
+                if sum(combo) == target_sum: return sorted(combo)
+            return "조합 생성 실패"
+        sum_recommendations["top_5_frequent_sums"] = [{"sum": s, "count": c, "recommendation": generate_combination_for_sum_simple(s)} for s, c in sums_counter.most_common(5)]
+        sum_recommendations["fixed_sum_recommendations"] = {
+            "low_sum": {"range": "60-90", "recommendation": [3, 7, 12, 15, 20, 25]},
+            "medium_sum": {"range": "120-150", "recommendation": [10, 15, 22, 28, 33, 40]},
+            "high_sum": {"range": "180-210", "recommendation": [25, 30, 35, 38, 40, 42]}
+        }
 
     except Exception as e:
         print(f"CRITICAL: Failed to open or read the CSV file. Error: {e}")
