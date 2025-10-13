@@ -3,7 +3,7 @@ FROM node:20-alpine AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4d623363a7754c981157b4d01dd49c300052b41#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+COPY lotto-analyzer-web/package.json lotto-analyzer-web/yarn.lock* lotto-analyzer-web/package-lock.json* lotto-analyzer-web/pnpm-lock.yaml* ./
 RUN \
   if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm install --frozen-lockfile; \
@@ -15,7 +15,7 @@ RUN \
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY lotto-analyzer-web/. .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
@@ -31,6 +31,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+
 
 EXPOSE 3000
 CMD ["npm", "start"]
