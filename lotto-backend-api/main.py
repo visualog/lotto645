@@ -5,6 +5,7 @@ from itertools import combinations
 import random
 import os
 import uvicorn
+from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -192,6 +193,15 @@ def load_and_analyze_data():
         print(f"CRITICAL: Failed to open or read the CSV file. Error: {e}")
 
 # --- API Endpoints ---
+
+@app.get("/api/last-update")
+async def get_last_update():
+    try:
+        last_modified_timestamp = os.path.getmtime(LOTTO_HISTORY_FILE)
+        last_modified_date = datetime.fromtimestamp(last_modified_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        return {"last_update": last_modified_date}
+    except FileNotFoundError:
+        return {"last_update": "N/A"}
 
 @app.get("/api/analysis/frequency")
 async def get_frequency_analysis():
