@@ -136,25 +136,33 @@ def load_and_analyze_data():
                 "std_dev": round((sum((x - (sum(all_sums) / len(all_sums))) ** 2 for x in all_sums) / len(all_sums)) ** 0.5, 2)
             }
 
+        # --- Time Series Analysis ---
         time_series_data_raw = []
-        window_size, sample_rate = 52, 10
+        window_size = 52
+        sample_rate = 10
         draws_ts = list(range(1, total_draws + 1))
-        moving_averages = [round(sum(all_sums[max(0, i - window_size + 1):i + 1]) / len(all_sums[max(0, i - window_size + 1):i + 1]), 2) if i >= window_size -1 else None for i in range(len(all_sums))]
+        moving_averages = [round(sum(all_sums[max(0, i - window_size + 1):i + 1]) / len(all_sums[max(0, i - window_size + 1):i + 1]), 2) if i >= window_size - 1 else None for i in range(len(all_sums))]
         for i in range(len(draws_ts)):
-            if i % sample_rate == 0: time_series_data_raw.append({"name": f"{draws_ts[i]}회", "sum": all_sums[i], "moving_average": moving_averages[i]})
+            if i % sample_rate == 0 and i < len(all_sums) and i < len(moving_averages):
+                time_series_data_raw.append({"name": f"{draws_ts[i]}회", "sum": all_sums[i], "moving_average": moving_averages[i]})
         time_series_data.extend(time_series_data_raw)
 
+        # --- ML Predictions (Hot/Overdue) ---
         overdue = {num: total_draws - seen_at for num, seen_at in last_seen.items()}
         ml_predictions["hot_numbers_prediction"] = sorted([num for num, count in main_numbers_counter.most_common(6)])
         ml_predictions["overdue_numbers_prediction"] = sorted([num for num, gap in sorted(overdue.items(), key=lambda item: item[1], reverse=True)[:6]])
 
+        # --- Co-occurrence Analysis ---
         co_occurrence_data.extend([{"pair": f"{p[0]} - {p[1]}", "count": c} for p, c in pair_frequencies.most_common(20)])
 
+        # --- Phase 1 Recommendations ---
         co_occurrence_nodes = Counter()
-        for pair, count in pair_frequencies.most_common(50): co_occurrence_nodes.update({pair[0]: count, pair[1]: count})
+        for pair, count in pair_frequencies.most_common(50):
+            co_occurrence_nodes.update({pair[0]: count, pair[1]: count})
         phase1_recommendations["pattern"] = sorted([12, 13, 17, 28, 33, 40])
         phase1_recommendations["co_occurrence"] = sorted([num for num, count in co_occurrence_nodes.most_common(6)])
 
+        # --- Integrated Recommendation ---
         integrated_scores = Counter()
         if main_numbers_counter:
             max_freq, min_freq = max(main_numbers_counter.values()), min(main_numbers_counter.values())
@@ -167,6 +175,7 @@ def load_and_analyze_data():
                 if num in phase1_recommendations["co_occurrence"]: integrated_scores[num] += 0.1
         integrated_recommendation.extend(sorted([num for num, score in integrated_scores.most_common(6)]))
 
+        # --- Sum-Based Recommendations ---
         def generate_combination_for_sum_simple(target_sum, max_attempts=1000):
             for _ in range(max_attempts):
                 combo = random.sample(range(1, 46), 6)
