@@ -217,24 +217,28 @@ export function FrequencyAnalysis() {
         <AnalysisTable
           title="가장 많이 나온 번호"
           description="자주 나오는 번호는 다음에도 나올 확률이 높을 수 있습니다."
+          tooltipContent="'핫' 번호는 통계적으로 다른 번호보다 자주 출현한 번호입니다. 과거 데이터에 기반한 경향이며, 미래의 당첨을 보장하지는 않습니다."
           data={frequencyData.hotNumbers}
           type="hot"
         />
         <AnalysisTable
           title="가장 적게 나온 번호"
           description="오랫동안 나오지 않은 번호는 나올 때가 되었을 수 있습니다."
+          tooltipContent="'콜드' 번호는 통계적으로 다른 번호보다 드물게 출현한 번호입니다. '오랫동안 나오지 않았으니 이제 나올 때가 됐다'는 생각(도박사의 오류)에 주의해야 합니다."
           data={frequencyData.coldNumbers}
           type="cold"
         />
         <AnalysisTable
           title="가장 많이 나온 보너스 번호"
           description="보너스 번호의 경향성을 파악합니다."
+          tooltipContent="보너스 번호 중 가장 자주 출현한 번호입니다. 2등 당첨에 영향을 미치는 번호의 경향성을 보여줍니다."
           data={frequencyData.hotBonusNumbers}
           type="hot-bonus"
         />
         <AnalysisTable
           title="가장 적게 나온 보너스 번호"
           description="드물게 나오는 보너스 번호를 확인합니다."
+          tooltipContent="보너스 번호 중 가장 드물게 출현한 번호입니다. 주 번호와는 다른 경향성을 보일 수 있습니다."
           data={frequencyData.coldBonusNumbers}
           type="cold-bonus"
         />
