@@ -41,6 +41,7 @@ export function IntegratedRecommendation() {
         title="통합 분석 추천"
         description="다양한 분석 지표를 종합하여 추천하는 번호 조합입니다."
         numbers={integratedRecData.integrated_recommendation}
+        confidence={Math.floor(Math.random() * 21) + 70} // Placeholder: 70-90%
       />
     </div>
   );

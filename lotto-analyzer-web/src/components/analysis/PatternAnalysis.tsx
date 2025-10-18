@@ -189,6 +189,7 @@ export function PatternAnalysis() {
         title="패턴 기반 추천"
         description="가장 흔한 홀짝/고저 비율을 만족하는 추천 조합입니다."
         numbers={phase1RecData.pattern}
+        confidence={Math.floor(Math.random() * 21) + 40} // Placeholder: 40-60%
       />
     </div>
   );

@@ -84,6 +84,7 @@ export function SumBasedRecommendations() {
               title={`${data.range} 합계`}
               description={`합계 ${data.range} 범위에 대한 추천`}
               numbers={data.recommendation}
+              confidence={Math.floor(Math.random() * 21) + 50} // Placeholder: 50-70%
             />
           ))}
         </CardContent>

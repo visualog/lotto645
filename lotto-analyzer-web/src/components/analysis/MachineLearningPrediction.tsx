@@ -42,11 +42,13 @@ export function MachineLearningPrediction() {
         title="'핫 넘버' 기반 예측"
         description="통계적으로 가장 자주 당첨된 번호들입니다."
         numbers={mlPredictionData.hot_numbers_prediction}
+        confidence={Math.floor(Math.random() * 31) + 60} // Placeholder: 60-90%
       />
       <PredictionCard
         title="'콜드 넘버' 기반 예측"
         description="최근 가장 오랫동안 당첨되지 않은 번호들입니다."
         numbers={mlPredictionData.overdue_numbers_prediction}
+        confidence={Math.floor(Math.random() * 21) + 20} // Placeholder: 20-40%
       />
     </div>
   );
