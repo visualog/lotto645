@@ -32,7 +32,7 @@ import {
 import { PredictionCard } from "./PredictionCard";
 import { HelpCircle } from "lucide-react";
 import {
-  Tooltip,
+  Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
@@ -92,14 +92,14 @@ function AnalysisTable({ title, description, tooltipContent, data, type }: Analy
         <CardTitle className="flex items-center justify-center gap-2">
           {title}
           <TooltipProvider>
-            <Tooltip>
+            <UITooltip>
               <TooltipTrigger asChild>
                 <HelpCircle className="w-4 h-4 text-gray-500 cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">{tooltipContent}</p>
               </TooltipContent>
-            </Tooltip>
+            </UITooltip>
           </TooltipProvider>
         </CardTitle>
         <CardDescription>{description}</CardDescription>
