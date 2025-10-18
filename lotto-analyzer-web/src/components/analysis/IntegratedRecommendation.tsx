@@ -10,6 +10,7 @@ type IntegratedRecommendationData = {
 
 export function IntegratedRecommendation() {
   const [integratedRecData, setIntegratedRecData] = useState<IntegratedRecommendationData | null>(null);
+  const [hitRate, setHitRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +32,26 @@ export function IntegratedRecommendation() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!integratedRecData) return;
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    const fetchHitRate = async () => {
+      try {
+        const params = new URLSearchParams();
+        integratedRecData.integrated_recommendation.forEach(n => params.append('numbers', String(n)));
+        const res = await fetch(`${API_BASE_URL}/api/recommendations/hit-rate?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const json = await res.json();
+        setHitRate(json.hit_rate);
+      } catch (e) {
+        console.error("Failed to fetch hit rate:", e);
+      }
+    };
+
+    fetchHitRate();
+  }, [integratedRecData]);
+
   if (loading) return <div className="text-center py-8">데이터를 불러오는 중...</div>;
   if (error) return <div className="text-center py-8 text-red-500">오류 발생: {error}</div>;
   if (!integratedRecData) return null;
@@ -41,7 +62,7 @@ export function IntegratedRecommendation() {
         title="통합 분석 추천"
         description="다양한 분석 지표를 종합하여 추천하는 번호 조합입니다."
         numbers={integratedRecData.integrated_recommendation}
-        confidence={Math.floor(Math.random() * 21) + 70} // Placeholder: 70-90%
+        confidence={hitRate}
       />
     </div>
   );

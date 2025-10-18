@@ -41,6 +41,7 @@ type SumRecommendations = {
 
 export function SumBasedRecommendations() {
   const [sumRecData, setSumRecData] = useState<SumRecommendations | null>(null);
+  const [hitRates, setHitRates] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +62,32 @@ export function SumBasedRecommendations() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!sumRecData) return;
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    const fetchHitRates = async () => {
+      try {
+        const newHitRates: Record<string, number> = {};
+        for (const key in sumRecData.fixed_sum_recommendations) {
+          const rec = sumRecData.fixed_sum_recommendations[key as keyof typeof sumRecData.fixed_sum_recommendations];
+          const params = new URLSearchParams();
+          rec.recommendation.forEach(n => params.append('numbers', String(n)));
+          const res = await fetch(`${API_BASE_URL}/api/recommendations/hit-rate?${params.toString()}`);
+          if (res.ok) {
+            const json = await res.json();
+            newHitRates[key] = json.hit_rate;
+          }
+        }
+        setHitRates(newHitRates);
+      } catch (e) {
+        console.error("Failed to fetch hit rates:", e);
+      }
+    };
+
+    fetchHitRates();
+  }, [sumRecData]);
 
   if (loading) return <div className="text-center py-8">데이터를 불러오는 중...</div>;
   if (error) return <div className="text-center py-8 text-red-500">오류 발생: {error}</div>;
@@ -84,7 +111,7 @@ export function SumBasedRecommendations() {
               title={`${data.range} 합계`}
               description={`합계 ${data.range} 범위에 대한 추천`}
               numbers={data.recommendation}
-              confidence={Math.floor(Math.random() * 21) + 50} // Placeholder: 50-70%
+              confidence={hitRates[key] || 0}
             />
           ))}
         </CardContent>

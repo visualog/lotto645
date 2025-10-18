@@ -52,6 +52,7 @@ const objectToAnalysisArray = (obj: Record<string, number>) => {
 export function PatternAnalysis() {
   const [patternData, setPatternData] = useState<PatternStats | null>(null);
   const [phase1RecData, setPhase1RecData] = useState<Phase1Recommendations | null>(null);
+  const [hitRate, setHitRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,14 +60,18 @@ export function PatternAnalysis() {
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
     const fetchData = async () => {
       try {
-        const patternRes = await fetch(`${API_BASE_URL}/api/analysis/patterns`);
-        if (!patternRes.ok) throw new Error(`HTTP error! status: ${patternRes.status}`);
-        const patternJson: PatternStats = await patternRes.json();
-        setPatternData(patternJson);
+        const [patternRes, phase1RecRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/analysis/patterns`),
+          fetch(`${API_BASE_URL}/api/recommendations/phase1`),
+        ]);
 
-        const phase1RecRes = await fetch(`${API_BASE_URL}/api/recommendations/phase1`);
+        if (!patternRes.ok) throw new Error(`HTTP error! status: ${patternRes.status}`);
         if (!phase1RecRes.ok) throw new Error(`HTTP error! status: ${phase1RecRes.status}`);
+
+        const patternJson: PatternStats = await patternRes.json();
         const phase1RecJson: Phase1Recommendations = await phase1RecRes.json();
+
+        setPatternData(patternJson);
         setPhase1RecData(phase1RecJson);
 
             } catch (e) {
@@ -78,6 +83,26 @@ export function PatternAnalysis() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!phase1RecData) return;
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    const fetchHitRate = async () => {
+      try {
+        const params = new URLSearchParams();
+        phase1RecData.pattern.forEach(n => params.append('numbers', String(n)));
+        const res = await fetch(`${API_BASE_URL}/api/recommendations/hit-rate?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const json = await res.json();
+        setHitRate(json.hit_rate);
+      } catch (e) {
+        console.error("Failed to fetch hit rate:", e);
+      }
+    };
+
+    fetchHitRate();
+  }, [phase1RecData]);
 
   if (loading) return <div className="text-center py-8">데이터를 불러오는 중...</div>;
   if (error) return <div className="text-center py-8 text-red-500">오류 발생: {error}</div>;
@@ -189,7 +214,7 @@ export function PatternAnalysis() {
         title="패턴 기반 추천"
         description="가장 흔한 홀짝/고저 비율을 만족하는 추천 조합입니다."
         numbers={phase1RecData.pattern}
-        confidence={Math.floor(Math.random() * 21) + 40} // Placeholder: 40-60%
+        confidence={hitRate}
       />
     </div>
   );

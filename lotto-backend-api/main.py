@@ -7,7 +7,8 @@ import os
 import uvicorn
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
+from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -41,11 +42,12 @@ co_occurrence_data = []
 phase1_recommendations = {}
 integrated_recommendation = []
 sum_recommendations = {}
+all_winning_numbers = []
 
 def load_and_analyze_data():
     global hot_numbers, cold_numbers, hot_bonus_numbers, cold_bonus_numbers
     global pattern_stats, time_series_data, ml_predictions, co_occurrence_data
-    global phase1_recommendations, integrated_recommendation, sum_recommendations
+    global phase1_recommendations, integrated_recommendation, sum_recommendations, all_winning_numbers
 
     # --- Reset global variables ---
     hot_numbers, cold_numbers, hot_bonus_numbers, cold_bonus_numbers = [], [], [], []
@@ -78,6 +80,7 @@ def load_and_analyze_data():
 
                     numbers_str = row['당첨번호']
                     main_nums = [int(n.strip()) for n in numbers_str.split(',')]
+                    all_winning_numbers.append(main_nums)
                     
                     current_draw_numbers = set(main_nums)
                     for num in main_nums:
@@ -239,6 +242,20 @@ async def get_integrated_recommendation():
 @app.get("/api/recommendations/sum-based")
 async def get_sum_based_recommendations():
     return sum_recommendations
+
+@app.get("/api/recommendations/hit-rate")
+async def get_hit_rate(numbers: List[int] = Query(...)):
+    if not all_winning_numbers:
+        return {"hit_rate": 0}
+
+    hit_count = 0
+    for winning_numbers in all_winning_numbers:
+        if set(numbers).issubset(set(winning_numbers)):
+            hit_count += 1
+
+    hit_rate = (hit_count / len(all_winning_numbers)) * 100
+    return {"hit_rate": round(hit_rate, 2)}
+
 
 # Run analysis on startup
 

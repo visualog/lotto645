@@ -32,6 +32,7 @@ type Phase1Recommendations = {
 export function CoOccurrenceAnalysis() {
   const [coOccurrenceData, setCoOccurrenceData] = useState<CoOccurrenceDataPoint[] | null>(null);
   const [phase1RecData, setPhase1RecData] = useState<Phase1Recommendations | null>(null);
+  const [hitRate, setHitRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,14 +40,18 @@ export function CoOccurrenceAnalysis() {
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
     const fetchData = async () => {
       try {
-        const coOccurrenceRes = await fetch(`${API_BASE_URL}/api/analysis/cooccurrence`);
-        if (!coOccurrenceRes.ok) throw new Error(`HTTP error! status: ${coOccurrenceRes.status}`);
-        const coOccurrenceJson: CoOccurrenceDataPoint[] = await coOccurrenceRes.json();
-        setCoOccurrenceData(coOccurrenceJson);
+        const [coOccurrenceRes, phase1RecRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/analysis/cooccurrence`),
+          fetch(`${API_BASE_URL}/api/recommendations/phase1`),
+        ]);
 
-        const phase1RecRes = await fetch(`${API_BASE_URL}/api/recommendations/phase1`);
+        if (!coOccurrenceRes.ok) throw new Error(`HTTP error! status: ${coOccurrenceRes.status}`);
         if (!phase1RecRes.ok) throw new Error(`HTTP error! status: ${phase1RecRes.status}`);
+
+        const coOccurrenceJson: CoOccurrenceDataPoint[] = await coOccurrenceRes.json();
         const phase1RecJson: Phase1Recommendations = await phase1RecRes.json();
+
+        setCoOccurrenceData(coOccurrenceJson);
         setPhase1RecData(phase1RecJson);
 
       } catch (e) {
@@ -58,6 +63,26 @@ export function CoOccurrenceAnalysis() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!phase1RecData) return;
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    const fetchHitRate = async () => {
+      try {
+        const params = new URLSearchParams();
+        phase1RecData.co_occurrence.forEach(n => params.append('numbers', String(n)));
+        const res = await fetch(`${API_BASE_URL}/api/recommendations/hit-rate?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const json = await res.json();
+        setHitRate(json.hit_rate);
+      } catch (e) {
+        console.error("Failed to fetch hit rate:", e);
+      }
+    };
+
+    fetchHitRate();
+  }, [phase1RecData]);
 
   if (loading) return <div className="text-center py-8">데이터를 불러오는 중...</div>;
   if (error) return <div className="text-center py-8 text-red-500">오류 발생: {error}</div>;
@@ -95,7 +120,7 @@ export function CoOccurrenceAnalysis() {
         title="동시 출현 기반 추천"
         description="동시 출현 빈도가 높은 번호들을 기반으로 한 추천 조합입니다."
         numbers={phase1RecData.co_occurrence}
-        confidence={Math.floor(Math.random() * 21) + 30} // Placeholder: 30-50%
+        confidence={hitRate}
       />
     </div>
   );
