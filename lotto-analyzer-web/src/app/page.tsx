@@ -9,15 +9,15 @@ import { MachineLearningPrediction } from "@/components/analysis/MachineLearning
 import { CoOccurrenceAnalysis } from "@/components/analysis/CoOccurrenceAnalysis";
 import { IntegratedRecommendation } from "@/components/analysis/IntegratedRecommendation";
 import { SumBasedRecommendations } from "@/components/analysis/SumBasedRecommendations";
+import { SavedNumbers } from "@/components/analysis/SavedNumbers";
 
 export default function Home() {
   const [lastUpdate, setLastUpdate] = useState("");
 
   useEffect(() => {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
-    const fetchLastUpdate = async () => {
+        const fetchLastUpdate = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/last-update`);
+        const res = await fetch(`http://127.0.0.1:8000/api/last-update`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         setLastUpdate(data.last_update);
@@ -41,7 +41,7 @@ export default function Home() {
           </p>
         )}
         <Tabs defaultValue="frequency">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-7 mb-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-8 mb-4">
             <TabsTrigger value="frequency">번호 빈도 분석</TabsTrigger>
             <TabsTrigger value="patterns">패턴 분석</TabsTrigger>
             <TabsTrigger value="timeseries">시계열 분석</TabsTrigger>
@@ -49,6 +49,7 @@ export default function Home() {
             <TabsTrigger value="co-occurrence">동시 출현 분석</TabsTrigger>
             <TabsTrigger value="integrated">통합 분석 추천</TabsTrigger>
             <TabsTrigger value="sum-based">합계 기반 추천</TabsTrigger>
+            <TabsTrigger value="saved">저장된 번호</TabsTrigger>
           </TabsList>
           <TabsContent value="frequency">
             <FrequencyAnalysis />
@@ -70,6 +71,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="sum-based">
             <SumBasedRecommendations />
+          </TabsContent>
+          <TabsContent value="saved">
+            <SavedNumbers />
           </TabsContent>
         </Tabs>
       </div>

@@ -12,7 +12,6 @@ interface PredictionCardProps {
   title: string;
   description: string;
   numbers: number[];
-  confidence: number;
 }
 
 function getBallColor(number: number): string {
@@ -23,13 +22,7 @@ function getBallColor(number: number): string {
   return "bg-green-500 text-white";
 }
 
-export function PredictionCard({ title, description, numbers, confidence }: PredictionCardProps) {
-  const getConfidenceColor = (value: number) => {
-    if (value < 50) return "bg-red-500";
-    if (value < 75) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
+export function PredictionCard({ title, description, numbers }: PredictionCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -49,13 +42,6 @@ export function PredictionCard({ title, description, numbers, confidence }: Pred
               {num}
             </div>
           ))}
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <h4 className="text-sm font-medium">추천 신뢰도</h4>
-            <span className="text-lg font-bold">{confidence}%</span>
-          </div>
-          <Progress value={confidence} className={cn(getConfidenceColor(confidence))} />
         </div>
       </CardContent>
     </Card>

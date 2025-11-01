@@ -14,14 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 # Allow CORS for frontend development
-origins = [
-    "http://localhost:3000", # Next.js frontend
-    "https://lotto-frontend-web-826258121279.asia-northeast3.run.app", # Deployed frontend
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,7 +25,7 @@ app.add_middleware(
 # --- Data Loading and Preprocessing (Run once on startup) ---
 LOTTO_HISTORY_FILE = "lotto_history.csv"
 
-# Global variables to store pre-calculated analysis results
+# --- Global variables ---
 hot_numbers = []
 cold_numbers = []
 hot_bonus_numbers = []
@@ -43,28 +38,62 @@ phase1_recommendations = {}
 integrated_recommendation = []
 sum_recommendations = {}
 all_winning_numbers = []
+main_numbers_counter = Counter()
+sums_counter = Counter()
+
+# --- Helper Functions ---
+def generate_combination_for_sum_simple(target_sum, max_attempts=1000):
+    for _ in range(max_attempts):
+        combo = random.sample(range(1, 46), 6)
+        if sum(combo) == target_sum: return sorted(combo)
+    return "조합 생성 실패"
+
+def generate_combination_in_sum_range(min_sum: int, max_sum: int, max_attempts=10000):
+    weighted_numbers = []
+    if main_numbers_counter:
+        for num, count in main_numbers_counter.items():
+            weighted_numbers.extend([num] * count)
+
+    if not weighted_numbers:
+        for _ in range(max_attempts):
+            combo = random.sample(range(1, 46), 6)
+            if min_sum <= sum(combo) <= max_sum:
+                return sorted(combo)
+        return "조합 생성 실패"
+
+    for _ in range(max_attempts):
+        combo = set()
+        while len(combo) < 6:
+            combo.add(random.choice(weighted_numbers))
+        
+        combo = list(combo)
+        if min_sum <= sum(combo) <= max_sum:
+            return sorted(combo)
+            
+    return "조합 생성 실패"
 
 def load_and_analyze_data():
     global hot_numbers, cold_numbers, hot_bonus_numbers, cold_bonus_numbers
     global pattern_stats, time_series_data, ml_predictions, co_occurrence_data
-    global phase1_recommendations, integrated_recommendation, sum_recommendations, all_winning_numbers
+    global phase1_recommendations, integrated_recommendation, sum_recommendations, all_winning_numbers, main_numbers_counter, sums_counter
 
     # --- Reset global variables ---
     hot_numbers, cold_numbers, hot_bonus_numbers, cold_bonus_numbers = [], [], [], []
     pattern_stats, time_series_data, co_occurrence_data = {}, [], []
     ml_predictions, phase1_recommendations, sum_recommendations = {}, {}, {}
     integrated_recommendation = []
+    all_winning_numbers = []
     pair_frequencies = Counter()
+    main_numbers_counter.clear()
+    sums_counter.clear()
 
     try:
         with open(LOTTO_HISTORY_FILE, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             
-            main_numbers_counter = Counter()
             bonus_numbers_counter = Counter()
             last_seen = {num: 0 for num in range(1, 46)}
             all_sums = []
-            sums_counter = Counter()
             odd_even_ratios_counter = Counter()
             high_low_ratios_counter = Counter()
             consecutive_count = 0
@@ -140,7 +169,6 @@ def load_and_analyze_data():
                 "std_dev": round((sum((x - (sum(all_sums) / len(all_sums))) ** 2 for x in all_sums) / len(all_sums)) ** 0.5, 2)
             }
 
-        # --- Time Series Analysis ---
         time_series_data_raw = []
         window_size = 52
         sample_rate = 10
@@ -151,22 +179,18 @@ def load_and_analyze_data():
                 time_series_data_raw.append({"name": f"{draws_ts[i]}회", "sum": all_sums[i], "moving_average": moving_averages[i]})
         time_series_data.extend(time_series_data_raw)
 
-        # --- ML Predictions (Hot/Overdue) ---
         overdue = {num: total_draws - seen_at for num, seen_at in last_seen.items()}
         ml_predictions["hot_numbers_prediction"] = sorted([num for num, count in main_numbers_counter.most_common(6)])
         ml_predictions["overdue_numbers_prediction"] = sorted([num for num, gap in sorted(overdue.items(), key=lambda item: item[1], reverse=True)[:6]])
 
-        # --- Co-occurrence Analysis ---
         co_occurrence_data.extend([{"pair": f"{p[0]} - {p[1]}", "count": c} for p, c in pair_frequencies.most_common(20)])
 
-        # --- Phase 1 Recommendations ---
         co_occurrence_nodes = Counter()
         for pair, count in pair_frequencies.most_common(50):
             co_occurrence_nodes.update({pair[0]: count, pair[1]: count})
         phase1_recommendations["pattern"] = sorted([12, 13, 17, 28, 33, 40])
         phase1_recommendations["co_occurrence"] = sorted([num for num, count in co_occurrence_nodes.most_common(6)])
 
-        # --- Integrated Recommendation ---
         integrated_scores = Counter()
         if main_numbers_counter:
             max_freq, min_freq = max(main_numbers_counter.values()), min(main_numbers_counter.values())
@@ -179,7 +203,6 @@ def load_and_analyze_data():
                 if num in phase1_recommendations["co_occurrence"]: integrated_scores[num] += 0.1
         integrated_recommendation.extend(sorted([num for num, score in integrated_scores.most_common(6)]))
 
-        # --- Sum-Based Recommendations ---
         def generate_combination_for_sum_simple(target_sum, max_attempts=1000):
             for _ in range(max_attempts):
                 combo = random.sample(range(1, 46), 6)
@@ -187,13 +210,38 @@ def load_and_analyze_data():
             return "조합 생성 실패"
         sum_recommendations["top_5_frequent_sums"] = [{"sum": s, "count": c, "recommendation": generate_combination_for_sum_simple(s)} for s, c in sums_counter.most_common(5)]
         sum_recommendations["fixed_sum_recommendations"] = {
-            "low_sum": {"range": "60-90", "recommendation": [3, 7, 12, 15, 20, 25]},
-            "medium_sum": {"range": "120-150", "recommendation": [10, 15, 22, 28, 33, 40]},
-            "high_sum": {"range": "180-210", "recommendation": [25, 30, 35, 38, 40, 42]}
+            "low_sum": {"range": "60-90", "recommendation": generate_combination_in_sum_range(60, 90)},
+            "medium_sum": {"range": "120-150", "recommendation": generate_combination_in_sum_range(120, 150)},
+            "high_sum": {"range": "180-210", "recommendation": generate_combination_in_sum_range(180, 210)}
         }
 
     except Exception as e:
         print(f"CRITICAL: Failed to open or read the CSV file. Error: {e}")
+
+# --- Helper Functions ---
+def generate_combination_in_sum_range(min_sum: int, max_sum: int, max_attempts=10000):
+    weighted_numbers = []
+    if main_numbers_counter:
+        for num, count in main_numbers_counter.items():
+            weighted_numbers.extend([num] * count)
+
+    if not weighted_numbers:
+        for _ in range(max_attempts):
+            combo = random.sample(range(1, 46), 6)
+            if min_sum <= sum(combo) <= max_sum:
+                return sorted(combo)
+        return "조합 생성 실패"
+
+    for _ in range(max_attempts):
+        combo = set()
+        while len(combo) < 6:
+            combo.add(random.choice(weighted_numbers))
+        
+        combo = list(combo)
+        if min_sum <= sum(combo) <= max_sum:
+            return sorted(combo)
+            
+    return "조합 생성 실패"
 
 # --- API Endpoints ---
 
@@ -241,7 +289,25 @@ async def get_integrated_recommendation():
 
 @app.get("/api/recommendations/sum-based")
 async def get_sum_based_recommendations():
-    return sum_recommendations
+    # Re-generate fixed recommendations on each call
+    fixed_recs = {
+        "low_sum": {"range": "60-90", "recommendation": generate_combination_in_sum_range(60, 90)},
+        "medium_sum": {"range": "120-150", "recommendation": generate_combination_in_sum_range(120, 150)},
+        "high_sum": {"range": "180-210", "recommendation": generate_combination_in_sum_range(180, 210)}
+    }
+    
+    # Re-generate top 5 frequent sums recommendations on each call
+    top_5_recs = [{"sum": s, "count": c, "recommendation": generate_combination_for_sum_simple(s)} for s, c in sums_counter.most_common(5)]
+
+    return {
+        "top_5_frequent_sums": top_5_recs,
+        "fixed_sum_recommendations": fixed_recs
+    }
+
+@app.get("/api/recommendations/sum-range")
+async def get_sum_range_recommendation(min_sum: int = Query(100), max_sum: int = Query(150)):
+    recommendation = generate_combination_in_sum_range(min_sum, max_sum)
+    return {"recommendation": recommendation}
 
 @app.get("/api/recommendations/hit-rate")
 async def get_hit_rate(numbers: List[int] = Query(...)):
@@ -256,15 +322,10 @@ async def get_hit_rate(numbers: List[int] = Query(...)):
     hit_rate = (hit_count / len(all_winning_numbers)) * 100
     return {"hit_rate": round(hit_rate, 2)}
 
-
-# Run analysis on startup
-
-load_and_analyze_data()
-
-
+@app.on_event("startup")
+async def startup_event():
+    load_and_analyze_data()
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 8000))
-
     uvicorn.run(app, host="0.0.0.0", port=port)
