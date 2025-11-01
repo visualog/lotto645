@@ -61,7 +61,7 @@ export function IntegratedRecommendation() {
       <PredictionCard
         title="통합 분석 추천"
         description="모든 분석을 종합하여 가장 가능성이 높은 번호 조합을 추천합니다."
-        numbers={recommendation}
+        numbers={integratedData.integrated_recommendation}
       />
     </div>
   );
