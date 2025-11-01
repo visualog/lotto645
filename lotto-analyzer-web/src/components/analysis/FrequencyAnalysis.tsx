@@ -164,7 +164,6 @@ function FrequencyChart({ data }: FrequencyChartProps) {
 export function FrequencyAnalysis() {
   const [frequencyData, setFrequencyData] = useState<FrequencyData | null>(null);
   const [mlPredictionData, setMlPredictionData] = useState<MlPredictionData | null>(null);
-  const [hitRate, setHitRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,25 +195,7 @@ export function FrequencyAnalysis() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (!mlPredictionData) return;
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-    const fetchHitRate = async () => {
-      try {
-        const params = new URLSearchParams();
-        mlPredictionData.hot_numbers_prediction.forEach(n => params.append('numbers', String(n)));
-        const res = await fetch(`${API_BASE_URL}/api/recommendations/hit-rate?${params.toString()}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
-        setHitRate(json.hit_rate);
-      } catch (e) {
-        console.error("Failed to fetch hit rate:", e);
-      }
-    };
-
-    fetchHitRate();
-  }, [mlPredictionData]);
 
   if (loading) return <div className="text-center py-8">데이터를 불러오는 중...</div>;
   if (error) return <div className="text-center py-8 text-red-500">오류 발생: {error}</div>;
@@ -269,7 +250,6 @@ export function FrequencyAnalysis() {
         title="'핫 넘버' 기반 추천"
         description="가장 자주 나온 번호는 다음 회차에서도 다시 나올 확률이 높다는 통계적 경향을 이용합니다. 이 추천 번호는 최근까지 가장 많이 나온 번호 6개를 조합한 것입니다."
         numbers={mlPredictionData.hot_numbers_prediction}
-        confidence={hitRate}
       />
     </div>
   );
