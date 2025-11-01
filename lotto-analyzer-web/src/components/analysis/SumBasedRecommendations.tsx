@@ -99,8 +99,11 @@ export function SumBasedRecommendations() {
   }, [fetchRecommendationByRange]);
 
   useEffect(() => {
-    fetchCustomRecommendation(customSumRange[0], customSumRange[1]);
-  }, [fetchCustomRecommendation]);
+    if (customSumRange) {
+      handleCustomRefresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customSumRange]);
 
   // --- Event Handlers ---
 
