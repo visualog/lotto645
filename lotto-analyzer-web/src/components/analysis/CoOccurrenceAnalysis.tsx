@@ -120,7 +120,6 @@ export function CoOccurrenceAnalysis() {
         title="동시 출현 기반 추천"
         description="동시 출현 빈도가 높은 번호들을 기반으로 한 추천 조합입니다."
         numbers={phase1RecData.co_occurrence}
-        confidence={hitRate}
       />
     </div>
   );

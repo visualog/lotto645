@@ -60,9 +60,8 @@ export function IntegratedRecommendation() {
     <div className="grid gap-6">
       <PredictionCard
         title="통합 분석 추천"
-        description="다양한 분석 지표를 종합하여 추천하는 번호 조합입니다."
-        numbers={integratedRecData.integrated_recommendation}
-        confidence={hitRate}
+        description="모든 분석을 종합하여 가장 가능성이 높은 번호 조합을 추천합니다."
+        numbers={recommendation}
       />
     </div>
   );
