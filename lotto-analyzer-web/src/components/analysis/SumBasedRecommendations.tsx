@@ -62,9 +62,10 @@ export function SumBasedRecommendations() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       return data.recommendation;
-    } catch (e: any) {
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
       console.error(`Failed to fetch sum-range recommendation for ${min}-${max}:`, e);
-      return `오류: ${e.message}`;
+      return `오류: ${errorMessage}`;
     }
   }, []);
 
