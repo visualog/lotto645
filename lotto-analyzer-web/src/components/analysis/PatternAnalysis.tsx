@@ -177,7 +177,7 @@ export function PatternAnalysis() {
           <CardHeader>
             <CardTitle>연속번호 출현</CardTitle>
             <CardDescription>연속된 번호가 포함된 회차</CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent className="flex flex-col items-center justify-center h-full pb-6">
             <p className="text-4xl font-bold">
               {patternData.consecutive_stats.percentage}%
