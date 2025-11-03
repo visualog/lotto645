@@ -212,7 +212,7 @@ export function SumBasedRecommendations() {
               min={21} // 1+2+3+4+5+6
               max={255} // 40+41+42+43+44+45
               step={1}
-              onValueChange={(newRange) => setCustomSumRange(newRange)}
+              onValueChange={(newRange) => setCustomSumRange([newRange[0], newRange[1]])}
               onValueCommit={handleCustomRangeCommit}
             />
           </div>
