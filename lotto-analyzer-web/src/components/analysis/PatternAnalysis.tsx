@@ -50,7 +50,8 @@ const objectToAnalysisArray = (obj: Record<string, number>) => {
 };
 
 export function PatternAnalysis() {
-  const [phase1RecData, setPhase1RecData] = useState<Phase1RecommendationData | null>(null);
+  const [patternData, setPatternData] = useState<PatternStats | null>(null);
+  const [phase1RecData, setPhase1RecData] = useState<Phase1Recommendations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,29 +72,9 @@ export function PatternAnalysis() {
 
         setPatternData(patternJson);
         setPhase1RecData(phase1RecJson);
-
-            } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/recommendations/phase1`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json: Phase1RecommendationData = await res.json();
-        setPhase1RecData(json);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
+      } finally {
         setLoading(false);
       }
     };
@@ -108,11 +89,11 @@ export function PatternAnalysis() {
   const oddEvenData = objectToAnalysisArray(patternData.odd_even_ratios);
   const highLowData = objectToAnalysisArray(patternData.high_low_ratios);
   const sumData = [
-      { name: "최소값", value: patternData.sum_stats.min },
-      { name: "최대값", value: patternData.sum_stats.max },
-      { name: "평균", value: patternData.sum_stats.mean },
-      { name: "중앙값", value: patternData.sum_stats.median },
-      { name: "표준편차", value: patternData.sum_stats.std_dev },
+    { name: "최소값", value: patternData.sum_stats.min },
+    { name: "최대값", value: patternData.sum_stats.max },
+    { name: "평균", value: patternData.sum_stats.mean },
+    { name: "중앙값", value: patternData.sum_stats.median },
+    { name: "표준편차", value: patternData.sum_stats.std_dev },
   ];
 
   return (
@@ -174,7 +155,7 @@ export function PatternAnalysis() {
             <CardDescription>6개 당첨번호 합의 통계</CardDescription>
           </CardHeader>
           <CardContent>
-             <Table>
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-center">통계</TableHead>
@@ -196,14 +177,14 @@ export function PatternAnalysis() {
           <CardHeader>
             <CardTitle>연속번호 출현</CardTitle>
             <CardDescription>연속된 번호가 포함된 회차</CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent className="flex flex-col items-center justify-center h-full pb-6">
-              <p className="text-4xl font-bold">
-                  {patternData.consecutive_stats.percentage}%
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                  ({patternData.total_draws}회 중 {patternData.consecutive_stats.count}회)
-              </p>
+            <p className="text-4xl font-bold">
+              {patternData.consecutive_stats.percentage}%
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              ({patternData.total_draws}회 중 {patternData.consecutive_stats.count}회)
+            </p>
           </CardContent>
         </Card>
       </div>
